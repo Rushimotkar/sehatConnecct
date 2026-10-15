@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Pay Appointment | Medico{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-6 py-16">
+    <div class="max-w-5xl mx-auto">
+        <div class="grid lg:grid-cols-12 gap-8 items-start">
+            <div class="lg:col-span-5">
+                <div class="premium-card p-8">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center border border-secondary/20">
+                            <i data-lucide="stethoscope" class="w-7 h-7 text-secondary"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] uppercase tracking-[0.2em] text-primary/40 font-bold">Appointment</p>
+                            <h2 class="text-2xl font-serif font-bold text-primary">{{ doctor.name }}</h2>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-primary/40">Date</span>
+                            <span class="font-bold text-primary">{{ appointment.consultation_date }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-primary/40">Time</span>
+                            <span class="font-bold text-primary">{{ appointment.appointment_time }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-primary/40">Fee</span>
+                            <span class="font-bold text-secondary">₹{{ amount }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-primary/40">Status</span>
+                            <span class="status-pill bg-warm/10 text-warm">Payment Pending</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-7">
+                <div class="premium-card p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <p class="text-[10px] uppercase tracking-[0.2em] text-primary/40 font-bold">UPI payment</p>
+                            <h3 class="text-3xl font-serif font-bold text-primary">Scan and pay</h3>
+                        </div>
+                        <span class="rounded-full bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest px-3 py-1 border border-accent/20">Secure</span>
+                    </div>
+
+                    <div class="rounded-[2rem] border border-primary/10 bg-gradient-to-br from-primary/5 to-secondary/5 p-5 mb-6">
+                        <div class="mx-auto w-64 h-64 rounded-[2rem] bg-white shadow-inner border border-primary/5 p-3 grid grid-cols-9 gap-1">
+                            {% for i in range(81) %}
+                            <span class="rounded-sm {% if (i % 3 == 0 and i % 7 != 0) or (i % 5 == 0) or (i in [0, 1, 2, 9, 10, 18, 19, 20, 27, 28, 29, 36, 37, 38, 45, 46, 47, 54, 55, 56, 63, 64, 65, 72, 73, 74]) %}bg-primary{% else %}bg-primary/10{% endif %}"></span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl bg-bgLight p-4 mb-6">
+                        <p class="text-[10px] uppercase tracking-[0.2em] text-primary/40 font-bold mb-2">UPI ID</p>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="font-bold text-primary break-all">{{ doctor_upi }}</span>
+                            <button type="button" onclick="copyUpi('{{ doctor_upi }}', event)" class="px-3 py-2 rounded-xl bg-primary text-white text-[10px] font-bold uppercase tracking-[0.2em]">Copy</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-warm/5 border border-warm/20 rounded-2xl p-4 mb-6">
+                        <p class="text-xs font-bold text-warm uppercase tracking-[0.2em] mb-2">Payment note</p>
+                        <p class="text-sm text-primary/70 leading-relaxed">Please pay the consultation fee to the doctor's UPI ID shown above. After payment, the doctor will verify it and confirm the appointment.</p>
+                    </div>
+
+                    <form action="{{ url_for('mark_appointment_paid', apt_id=appointment.id) }}" method="POST" class="space-y-4">
+                        <button type="submit" class="w-full py-4 bg-primary text-white font-bold rounded-2xl hover:bg-secondary transition-all shadow-xl shadow-primary/15 flex items-center justify-center gap-3">
+                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                            I have paid
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="block text-center py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors">
+                            Back to dashboard
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function copyUpi(value, event) {
+        navigator.clipboard.writeText(value)
+            .then(() => {
+                const btn = event.currentTarget;
+                const previous = btn.textContent;
+                btn.textContent = 'Copied';
+                setTimeout(() => btn.textContent = previous, 1200);
+            })
+            .catch(() => {
+                alert('Unable to copy UPI ID automatically. Please copy it manually.');
+            });
+    }
+</script>
+{% endblock %}

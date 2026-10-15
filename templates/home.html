@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}Symptom Analysis | Medico AI{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-card {
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .result-card:hover {
+        transform: translateY(-8px);
+    }
+    
+    /* CHATBOT REFINEMENT */
+    #chat-window {
+        box-shadow: 0 40px 100px rgba(11, 37, 69, 0.2);
+        transform: scale(0.95) translateY(20px);
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #chat-window.open {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+        pointer-events: all;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: rgba(11, 37, 69, 0.1); border-radius: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-6 pt-16 pb-24">
+    <!-- PAGE HEADER -->
+    <div class="text-center max-w-2xl mx-auto mb-16 space-y-4">
+        <span class="px-4 py-1.5 bg-secondary/10 text-secondary text-[10px] font-bold rounded-full uppercase tracking-[0.2em]">Diagnostic Intelligence</span>
+        <h1 class="text-5xl font-serif font-bold text-primary">Symptom <span class="text-secondary">Analysis</span></h1>
+        <p class="text-primary/60 font-medium leading-relaxed">Describe your clinical concerns. Our neural network analyzes patterns to provide preliminary guidance and specialist matching.</p>
+    </div>
+
+    <div class="max-w-4xl mx-auto">
+        <!-- FORM CARD -->
+        <div class="premium-card p-10 lg:p-14">
+            <div class="flex items-center gap-4 mb-10">
+                <div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+                    <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-primary">Intake Assessment</h3>
+                    <p class="text-[10px] text-primary/40 font-bold uppercase tracking-widest">Neural Engine v4.0 Active</p>
+                </div>
+            </div>
+            
+            <form action="/predict" method="POST" class="space-y-8">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-primary/40 uppercase tracking-widest ml-1">Clinical Manifestations</label>
+                    <textarea name="symptoms" placeholder="Describe your symptoms in detail (e.g., persistent dry cough, localized chest pressure, mild fatigue)..." required class="w-full px-6 py-5 bg-bgLight border border-primary/5 rounded-[2rem] focus:ring-2 focus:ring-secondary/20 outline-none font-medium min-h-[120px] transition-all resize-none">{{ symptoms or '' }}</textarea>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-primary/40 uppercase tracking-widest ml-1">Patient Demographic</label>
+                        <div class="relative">
+                            <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/20"></i>
+                            <select name="age_group" class="w-full pl-12 pr-6 py-4 bg-bgLight border border-primary/5 rounded-2xl focus:ring-2 focus:ring-secondary/20 outline-none font-medium transition-all appearance-none cursor-pointer">
+                                <option value="Child"  {% if age_group=='Child'  %}selected{% endif %}>Pediatric (0–12)</option>
+                                <option value="Teen"   {% if age_group=='Teen'   %}selected{% endif %}>Adolescent (13–17)</option>
+                                <option value="Adult"  {% if age_group=='Adult'  %}selected{% endif %} selected>Adult (18–60)</option>
+                                <option value="Senior" {% if age_group=='Senior' %}selected{% endif %}>Geriatric (60+)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-primary/40 uppercase tracking-widest ml-1">Perceived Severity</label>
+                        <div class="relative">
+                            <i data-lucide="activity" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/20"></i>
+                            <select name="severity" class="w-full pl-12 pr-6 py-4 bg-bgLight border border-primary/5 rounded-2xl focus:ring-2 focus:ring-secondary/20 outline-none font-medium transition-all appearance-none cursor-pointer">
+                                <option value="Mild"     {% if severity=='Mild'     %}selected{% endif %}>Mild Discomfort</option>
+                                <option value="Moderate" {% if severity=='Moderate' %}selected{% endif %}>Moderate Impact</option>
+                                <option value="Severe"   {% if severity=='Severe'   %}selected{% endif %}>Severe/Acute</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-primary/40 uppercase tracking-widest ml-1">Contraindications / Allergies</label>
+                    <div class="relative">
+                        <i data-lucide="shield-alert" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/20"></i>
+                        <input type="text" name="allergies" placeholder="List any known allergies (e.g., Penicillin, Latex) or 'None'" value="{{ allergies or 'None' }}" class="w-full pl-12 pr-6 py-4 bg-bgLight border border-primary/5 rounded-2xl focus:ring-2 focus:ring-secondary/20 outline-none font-medium transition-all">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-5 bg-primary text-white font-bold rounded-2xl hover:bg-secondary transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3 group">
+                    Generate Clinical Recommendation
+                    <i data-lucide="sparkles" class="w-4 h-4 group-hover:rotate-12 transition-transform"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- EMERGENCY ALERT -->
+        {% if emergency_alert %}
+        <div class="mt-12 p-8 lg:p-12 bg-red-500 rounded-[3rem] text-white shadow-2xl shadow-red-500/30 animate-pulse-slow">
+            <div class="flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                <div class="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center shrink-0">
+                    <i data-lucide="alert-triangle" class="w-10 h-10"></i>
+                </div>
+                <div class="flex-1 space-y-2">
+                    <h5 class="text-2xl font-bold uppercase tracking-tight">Immediate Medical Attention Required</h5>
+                    <p class="text-white/80 font-medium leading-relaxed">Your symptoms suggest a potentially acute or life-threatening condition. Please prioritize your safety.</p>
+                </div>
+                <div class="flex flex-col gap-3 w-full md:w-auto">
+                    <a href="tel:108" class="px-8 py-4 bg-white text-red-500 font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-white/90 transition-all">
+                        <i data-lucide="phone" class="w-5 h-5"></i> Call 108
+                    </a>
+                    <form action="/doctors" method="POST" class="w-full">
+                        <input type="hidden" name="specialty" value="Emergency">
+                        <input type="hidden" name="location" value="Current">
+                        <button type="submit" class="w-full px-8 py-4 bg-black/20 text-white font-bold rounded-2xl hover:bg-black/30 transition-all">
+                            Find ER Nearby
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- RESULTS -->
+        {% if result %}
+        <div class="mt-16 space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Result Cards -->
+                <div class="premium-card p-6 result-card bg-secondary/5 border-secondary/10">
+                    <p class="text-[10px] font-bold text-secondary uppercase tracking-widest mb-4">Neural Suggestion</p>
+                    <h3 class="text-2xl font-bold text-primary mb-1">{{ result.medicine }}</h3>
+                    <p class="text-xs text-primary/40 font-medium">Pharmacological Match</p>
+                </div>
+                <div class="premium-card p-6 result-card">
+                    <p class="text-[10px] font-bold text-primary/30 uppercase tracking-widest mb-4">Clinical Pathway</p>
+                    <h3 class="text-2xl font-bold text-primary mb-1">{{ result.specialty }}</h3>
+                    <p class="text-xs text-primary/40 font-medium">Recommended Specialist</p>
+                </div>
+                <div class="premium-card p-6 result-card bg-accent/5 border-accent/10">
+                    <p class="text-[10px] font-bold text-accent uppercase tracking-widest mb-4">Engine Confidence</p>
+                    <h3 class="text-2xl font-bold text-primary mb-1">{{ result.confidence }}%</h3>
+                    <p class="text-xs text-primary/40 font-medium">Pattern Probability</p>
+                </div>
+                <div class="premium-card p-6 result-card bg-red-50/50 border-red-100">
+                    <p class="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-4">Risk Profile</p>
+                    <h3 class="text-2xl font-bold text-primary mb-1">{{ severity }}</h3>
+                    <p class="text-xs text-primary/40 font-medium">Patient Reported</p>
+                </div>
+            </div>
+
+            <!-- MEDICINE DETAILS -->
+            <div class="glass p-10 lg:p-14 rounded-[3.5rem] border-white/40 shadow-3xl">
+                <div class="flex items-center gap-4 mb-10">
+                    <div class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
+                        <i data-lucide="pill" class="w-5 h-5"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-primary">Administration Protocol</h4>
+                </div>
+                
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-primary/30 uppercase tracking-widest">Typical Dosage</p>
+                        <p class="text-base font-bold text-primary">{{ details.dosage }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-primary/30 uppercase tracking-widest">Interval</p>
+                        <p class="text-base font-bold text-primary">{{ details.frequency }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-primary/30 uppercase tracking-widest">Classification</p>
+                        <p class="text-base font-bold text-primary">{{ details.type }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-red-500/60 uppercase tracking-widest">Safety Warning</p>
+                        <p class="text-sm font-bold text-red-600 leading-tight">{{ details.warning }}</p>
+                    </div>
+                </div>
+
+                <div class="mt-12 p-6 bg-secondary/5 rounded-2xl flex items-start gap-4">
+                    <i data-lucide="info" class="w-5 h-5 text-secondary mt-0.5"></i>
+                    <p class="text-[11px] text-primary/40 font-medium leading-relaxed italic">
+                        Disclaimer: This report is generated by an artificial intelligence model and is intended for informational and preliminary guidance only. It does not constitute professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ACTION BUTTON -->
+            <form action="/doctors" method="POST" class="max-w-xl mx-auto">
+                <input type="hidden" name="specialty" value="{{ result.specialty }}">
+                <input type="hidden" name="location" value="{{ location or 'Nearby' }}">
+                <button type="submit" class="w-full py-6 bg-primary text-white font-bold rounded-3xl hover:bg-secondary transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-4 group">
+                    <i data-lucide="search" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                    Connect with {{ result.specialty }} Specialists
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- CHATBOT WIDGET -->
+<button id="chat-fab" class="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/40 hover:scale-110 active:scale-95 transition-all z-[100] group">
+    <i data-lucide="message-square" class="w-7 h-7 group-hover:rotate-12 transition-transform"></i>
+    <span class="absolute -top-1 -right-1 w-5 h-5 bg-accent rounded-full border-4 border-bgDark"></span>
+</button>
+
+<div id="chat-window" class="fixed bottom-28 right-8 w-[400px] h-[600px] glass rounded-[2.5rem] border-white/40 z-[99] flex flex-col overflow-hidden">
+    <div class="p-6 bg-primary text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="bot" class="w-5 h-5 text-accent"></i>
+            </div>
+            <div>
+                <h5 class="text-sm font-bold">Medico AI Assistant</h5>
+                <p class="text-[10px] text-white/60 font-medium uppercase tracking-widest">Always Online</p>
+            </div>
+        </div>
+        <button id="chat-close" class="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
+        <div class="flex gap-3 max-w-[85%]">
+            <div class="w-8 h-8 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
+                <i data-lucide="bot" class="w-4 h-4 text-primary"></i>
+            </div>
+            <div class="bg-primary/5 p-4 rounded-2xl rounded-tl-none text-sm font-medium text-primary/80 leading-relaxed">
+                Hello! I am your clinical assistant. How can I assist with your health inquiries today?
+            </div>
+        </div>
+    </div>
+
+    <div class="p-4 border-t border-primary/5 bg-bgLight/30 space-y-3">
+        <div class="flex gap-2">
+            <select id="chat-lang" class="bg-white/50 border border-primary/5 rounded-xl px-2 py-1 text-[10px] font-bold text-primary/40 focus:outline-none uppercase tracking-widest">
+                <option value="en-IN">EN</option>
+                <option value="mr-IN">MR</option>
+                <option value="hi-IN">HI</option>
+            </select>
+            <div class="flex-1"></div>
+        </div>
+        <div class="flex gap-2">
+            <button id="chat-mic" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-all group">
+                <i data-lucide="mic" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+            </button>
+            <input type="text" id="chat-input" placeholder="Type your query..." class="flex-1 bg-white/50 border border-primary/5 rounded-2xl px-5 focus:ring-2 focus:ring-secondary/20 outline-none text-sm font-medium transition-all">
+            <button id="chat-send" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-primary text-white hover:bg-secondary transition-all">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const fab = document.getElementById('chat-fab');
+    const chatWindow = document.getElementById('chat-window');
+    const closeBtn = document.getElementById('chat-close');
+    const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send');
+    const messages = document.getElementById('chat-messages');
+
+    fab.addEventListener('click', () => {
+        chatWindow.classList.toggle('open');
+        lucide.createIcons();
+    });
+
+    closeBtn.addEventListener('click', () => {
+        chatWindow.classList.remove('open');
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+        
+        // User message
+        const userDiv = document.createElement('div');
+        userDiv.className = 'flex flex-row-reverse gap-3 max-w-[85%] ml-auto';
+        userDiv.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <i data-lucide="user" class="w-4 h-4 text-white"></i>
+            </div>
+            <div class="bg-secondary text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium leading-relaxed">
+                ${text}
+            </div>
+        `;
+        messages.appendChild(userDiv);
+        input.value = '';
+        lucide.createIcons();
+        
+        messages.scrollTop = messages.scrollHeight;
+        
+        // Bot response
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                const botDiv = document.createElement('div');
+                botDiv.className = 'flex gap-3 max-w-[85%]';
+                botDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
+                        <i data-lucide="bot" class="w-4 h-4 text-primary"></i>
+                    </div>
+                    <div class="bg-primary/5 p-4 rounded-2xl rounded-tl-none text-sm font-medium text-primary/80 leading-relaxed">
+                        ${data.reply.replace(/\n/g, '<br>')}
+                    </div>
+                `;
+                messages.appendChild(botDiv);
+                messages.scrollTop = messages.scrollHeight;
+                lucide.createIcons();
+                speakText(data.reply);
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            let cleanText = text.replace(/[*_#]/g, '').replace(/👋|🩺|💊|🏥|🚨|🌡️|🧠|🤧|🫃|🤔/g, '');
+            const msg = new SpeechSynthesisUtterance(cleanText);
+            msg.lang = document.getElementById('chat-lang').value || 'en-US';
+            window.speechSynthesis.speak(msg);
+        }
+    }
+
+    const micBtn = document.getElementById('chat-mic');
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        micBtn.addEventListener('click', () => {
+            recognition.lang = document.getElementById('chat-lang').value || 'en-IN';
+            recognition.start();
+            micBtn.classList.add('bg-red-500', 'text-white');
+        });
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            input.value = transcript;
+            micBtn.classList.remove('bg-red-500', 'text-white');
+            sendMessage();
+        };
+
+        recognition.onerror = () => micBtn.classList.remove('bg-red-500', 'text-white');
+        recognition.onend = () => micBtn.classList.remove('bg-red-500', 'text-white');
+    } else {
+        micBtn.style.display = 'none';
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Video Consultation - MediGuide{% endblock %}
+
+{% block extra_css %}
+<style>
+    .video-hero-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border-radius: 1.5rem;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.3);
+    }
+    #jitsi-container {
+        width: 100%;
+        height: 620px;
+        border-radius: 1.25rem;
+        overflow: hidden;
+        background: #090d16;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    #jitsi-container iframe {
+        border-radius: 1.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Top Header Banner -->
+    <div class="video-hero-card text-white p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="w-12 h-12 rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-center fs-4 fw-bold">
+                    <i class="fas fa-video text-info"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 uppercase font-mono fs-8">
+                            <i class="fas fa-circle me-1 text-success fs-9 animate-pulse"></i> Encrypted Live Consultation
+                        </span>
+                        <span class="badge bg-secondary px-2 py-1 text-uppercase fs-8">{{ user_role|upper }} VIEW</span>
+                    </div>
+                    <h3 class="mb-0 text-white fw-bold mt-1">
+                        {% if user_role == 'doctor' %}
+                        Consultation with {{ appointment.patient_name }}
+                        {% else %}
+                        Consultation with {{ doctor.name if doctor else 'Specialist' }}
+                        {% endif %}
+                    </h3>
+                    <p class="mb-0 text-white-50 small">
+                        Appointment ID: <code>#{{ appointment.id }}</code> | Date: {{ appointment.consultation_date or 'Today' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="d-flex align-items-center gap-2">
+                {% if user_role == 'doctor' %}
+                <a href="{{ url_for('prescribe_appointment', apt_id=appointment.id) }}" target="_blank" class="btn btn-emerald btn-sm px-3 py-2 fw-bold bg-success text-white">
+                    <i class="fas fa-file-prescription me-1"></i> Write E-Prescription
+                </a>
+                <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-outline-light btn-sm px-3 py-2">
+                    <i class="fas fa-arrow-left me-1"></i> Doctor Dashboard
+                </a>
+                {% else %}
+                {% if appointment.prescription_id %}
+                <a href="{{ url_for('generate_prescription_pdf', presc_id=appointment.prescription_id) }}" target="_blank" class="btn btn-primary btn-sm px-3 py-2 fw-bold">
+                    <i class="fas fa-file-pdf me-1"></i> View Prescription
+                </a>
+                {% endif %}
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm px-3 py-2">
+                    <i class="fas fa-arrow-left me-1"></i> Patient Portal
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Jitsi Meet Video Frame Container -->
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 bg-dark">
+        <div class="card-body p-2 position-relative">
+            <div id="jitsi-container"></div>
+        </div>
+    </div>
+
+    <!-- Info & Quick Actions Footer -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-body p-3">
+                    <h6 class="fw-bold text-primary mb-2"><i class="fas fa-info-circle me-2"></i>Consultation Details</h6>
+                    <ul class="list-unstyled mb-0 small text-secondary">
+                        <li class="mb-1"><strong>Patient:</strong> {{ appointment.patient_name }} ({{ appointment.patient_age }} Yrs)</li>
+                        <li class="mb-1"><strong>Doctor:</strong> {{ doctor.name if doctor else 'Dr. Medical Specialist' }} ({{ doctor.specialization if doctor else 'Specialist' }})</li>
+                        <li><strong>Chief Complaint:</strong> {{ appointment.chief_complaint or 'General Checkup' }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-body p-3">
+                    <h6 class="fw-bold text-primary mb-2"><i class="fas fa-shield-alt me-2 text-success"></i>Video Call Security</h6>
+                    <p class="small text-muted mb-0">
+                        This session is protected by end-to-end peer encryption using WebRTC & Jitsi Meet Server.
+                        If connection drops, re-click "Join Video Call" from your dashboard.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Jitsi External API SDK -->
+<script src="https://meet.jit.si/external_api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const domain = 'meet.jit.si';
+    const roomName = "{{ room_name }}";
+    const displayName = "{{ display_name }}";
+    const userRole = "{{ user_role }}";
+
+    const options = {
+        roomName: roomName,
+        width: '100%',
+        height: '100%',
+        parentNode: document.querySelector('#jitsi-container'),
+        userInfo: {
+            displayName: displayName
+        },
+        configOverwrite: {
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            prejoinPageEnabled: false,
+            disableDeepLinking: true,
+            enableWelcomePage: false
+        },
+        interfaceConfigOverwrite: {
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false,
+            TOOLBAR_BUTTONS: [
+                'microphone', 'camera', 'desktop', 'fullscreen',
+                'f当地fcode', 'hangup', 'chat', 'raisehand',
+                'tileview', 'toggle-camera', 'videoquality'
+            ]
+        }
+    };
+
+    const api = new JitsiMeetExternalAPI(domain, options);
+
+    // Event handlers
+    api.addEventListeners({
+        videoConferenceJoined: function(participant) {
+            console.log('Joined Jitsi video conference:', participant);
+        },
+        videoConferenceLeft: function() {
+            console.log('Left video conference');
+            if (userRole === 'doctor') {
+                window.location.href = "{{ url_for('doctor.dashboard') }}";
+            } else {
+                window.location.href = "{{ url_for('dashboard') }}";
+            }
+        },
+        readyToClose: function() {
+            if (userRole === 'doctor') {
+                window.location.href = "{{ url_for('doctor.dashboard') }}";
+            } else {
+                window.location.href = "{{ url_for('dashboard') }}";
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

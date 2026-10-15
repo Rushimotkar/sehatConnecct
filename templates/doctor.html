@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Finder | Medico{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-sidebar {
+        background: white;
+        border: 1px solid rgba(11, 37, 69, 0.05);
+        border-radius: 2rem;
+        box-shadow: 0 10px 30px rgba(11, 37, 69, 0.02);
+    }
+    .doctor-card {
+        background: white;
+        border: 1px solid rgba(11, 37, 69, 0.05);
+        border-radius: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+    .doctor-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(11, 37, 69, 0.05);
+        border-color: var(--secondary);
+    }
+    .doctor-avatar {
+        width: 60px;
+        height: 60px;
+        background: var(--bg-light);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--secondary);
+        border: 1px solid rgba(27, 108, 168, 0.1);
+        overflow: hidden;
+    }
+    .map-panel {
+        background: #F8FAFB;
+        border-radius: 2rem;
+        overflow: hidden;
+        border: 1px solid rgba(11, 37, 69, 0.1);
+        height: 600px;
+    }
+    .map-panel iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="relative overflow-hidden bg-bgLight pt-12 pb-16">
+    <div class="absolute top-0 right-0 w-1/3 h-full bg-secondary/5 -skew-x-12 translate-x-1/2"></div>
+    
+    <div class="container mx-auto px-6 relative z-10">
+        <div class="text-center max-w-3xl mx-auto mb-10">
+            <span class="px-4 py-1.5 bg-secondary/10 text-secondary text-[10px] font-bold rounded-full uppercase tracking-[0.2em] mb-3 inline-block">Specialist Network</span>
+            <h1 class="text-4xl md:text-5xl font-serif font-bold text-primary mb-4">Find & Book a <span class="text-secondary">Specialist</span></h1>
+            <p class="text-primary/60 font-medium text-base">Filter by ratings, slots, and fees to consult top-tier clinical partners.</p>
+        </div>
+    </div>
+</div>
+
+<div class="container mx-auto px-6 pb-24">
+    <div class="grid lg:grid-cols-12 gap-8 items-start -mt-8 relative z-20">
+        <div class="lg:col-span-12">
+            <div class="bg-white rounded-[2rem] border border-primary/5 shadow-xl shadow-primary/5 p-5 mb-6">
+                <form method="GET" action="/doctors" class="grid gap-4 md:grid-cols-[1.4fr_1.2fr_auto] items-center">
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/40"></i>
+                        <input type="text" name="specialty" value="{{ specialty or '' }}" placeholder="Search doctor or hospital" class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-primary/10 bg-bgLight text-primary text-sm outline-none focus:ring-2 focus:ring-secondary/20">
+                    </div>
+                    <div class="relative">
+                        <i data-lucide="map-pin" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/40"></i>
+                        <input type="text" name="location" value="{{ location or city or '' }}" placeholder="Search city or area" class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-primary/10 bg-bgLight text-primary text-sm outline-none focus:ring-2 focus:ring-secondary/20">
+                    </div>
+                    <button type="submit" class="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-primary text-white font-bold hover:bg-secondary transition-all shadow-lg shadow-primary/10">
+                        Search on Map
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="lg:col-span-12 grid md:grid-cols-12 gap-8 items-start">
+            
+            <!-- DOCTOR LIST WRAPPER -->
+            <div class="md:col-span-7 space-y-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xl font-serif font-bold text-primary flex items-center gap-2">
+                        <i data-lucide="shield-check" class="text-secondary w-5 h-5"></i> Verified Specialists
+                    </h3>
+                    <div id="loader" class="hidden"><i data-lucide="loader-2" class="w-5 h-5 animate-spin text-secondary"></i></div>
+                </div>
+                
+                <!-- Inner container targeted for AJAX fetch insertion (Requirement 4) -->
+                <div id="doctor-list-container">
+                    {% include "doctor_cards_partial.html" %}
+                </div>
+            </div>
+            
+            <!-- MAP PANEL -->
+            <div class="md:col-span-5">
+                <div class="map-panel sticky top-24 shadow-3xl shadow-primary/5">
+                    {% if map_html %}
+                        {{ map_html | safe }}
+                    {% else %}
+                        <div class="w-full h-full flex flex-col items-center justify-center p-12 text-center">
+                            <div class="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center text-primary/20 mb-6">
+                                <i data-lucide="map" class="w-8 h-8"></i>
+                            </div>
+                            <h4 class="text-lg font-serif font-bold text-primary/40 mb-1">Interactive Clinic Map</h4>
+                            <p class="text-xs text-primary/30 font-medium leading-relaxed">External search facilities mapping is activated on location lookup.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- REVIEW MODAL CONTAINER (Requirement 5) -->
+<div id="review-modal" class="fixed inset-0 bg-primary/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-primary/5 relative">
+        <button onclick="closeReviewModal()" class="absolute top-5 right-5 text-primary/40 hover:text-primary transition-all">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <h3 class="text-xl font-serif font-bold text-primary mb-1">Submit Doctor Review</h3>
+        <p id="review-doc-name" class="text-xs text-secondary font-bold mb-6">Dr. Name</p>
+        
+        <form id="review-form" method="POST" action="">
+            <div class="mb-4">
+                <label class="text-xs font-bold text-primary/60 block mb-2">Select Rating Score</label>
+                <div class="flex items-center gap-3">
+                    {% for score in [1, 2, 3, 4, 5] %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="rating" value="{{ score }}" required class="sr-only peer">
+                        <i data-lucide="star" class="star-rating-icon w-8 h-8 text-primary/10 hover:text-warm transition-all" data-value="{{ score }}"></i>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="mb-6">
+                <label class="text-xs font-bold text-primary/60 block mb-2">Written Opinion / Comment</label>
+                <textarea name="comment" rows="4" placeholder="Describe your consultation quality, clinical support, and friendliness..." required class="w-full p-4 border border-primary/10 rounded-2xl focus:ring-2 focus:ring-secondary/20 outline-none text-xs leading-relaxed"></textarea>
+            </div>
+            <button type="submit" class="w-full py-3.5 bg-primary text-white font-bold rounded-2xl hover:bg-secondary transition-all shadow-lg shadow-primary/10 text-xs uppercase tracking-wider">
+                Publish Review
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Review modal handlers
+function openReviewModal(docId, docName) {
+    const modal = document.getElementById('review-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    const name = document.getElementById('review-doc-name');
+    const form = document.getElementById('review-form');
+    if (name) name.innerText = 'For ' + docName;
+    if (form) form.action = '/doctors/' + docId + '/reviews';
+}
+
+function closeReviewModal() {
+    const modal = document.getElementById('review-modal');
+    const form = document.getElementById('review-form');
+    if (modal) modal.classList.add('hidden');
+    if (form) form.reset();
+    resetModalStars();
+}
+
+function resetModalStars() {
+    document.querySelectorAll('.star-rating-icon').forEach(star => {
+        star.classList.remove('text-warm', 'fill-warm');
+        star.classList.add('text-primary/10');
+    });
+}
+
+const radioInputs = document.querySelectorAll('#review-form input[name="rating"]');
+radioInputs.forEach(input => {
+    input.addEventListener('change', function() {
+        const ratingVal = parseInt(this.value);
+        document.querySelectorAll('.star-rating-icon').forEach(star => {
+            const starValue = parseInt(star.getAttribute('data-value'));
+            if (starValue <= ratingVal) {
+                star.classList.add('text-warm', 'fill-warm');
+                star.classList.remove('text-primary/10');
+            } else {
+                star.classList.remove('text-warm', 'fill-warm');
+                star.classList.add('text-primary/10');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

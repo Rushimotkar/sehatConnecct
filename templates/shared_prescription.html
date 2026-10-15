@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Shared E-Prescription - MediGuide{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <!-- Header Banner -->
+                <div class="card-header bg-gradient p-4 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle mb-2 px-3 py-1">Verified Digital Prescription</span>
+                            <h3 class="mb-0 text-white fw-bold"><i class="fas fa-file-medical me-2"></i>E-Prescription</h3>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('view_shared_prescription_pdf', token=token) }}" target="_blank" class="btn btn-primary fw-bold shadow-sm">
+                                <i class="fas fa-file-pdf me-1"></i> Download PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <!-- Doctor & Hospital Information Header -->
+                    <div class="d-flex justify-content-between border-bottom pb-4 mb-4 flex-wrap gap-3">
+                        <div>
+                            <h4 class="fw-bold text-primary mb-1">{{ presc.doctor_name or 'Dr. Verified Specialist' }}</h4>
+                            <p class="mb-0 text-muted"><i class="fas fa-id-badge me-1"></i>Reg No: {{ presc.doctor_reg_no or 'REG-MED-100234' }}</p>
+                            <p class="mb-0 text-muted"><i class="fas fa-hospital me-1"></i>MediGuide Multi-Specialty Clinic</p>
+                        </div>
+                        <div class="text-md-end">
+                            <span class="text-muted d-block small">Prescription Date</span>
+                            <strong class="text-dark fs-6">{{ presc.created_at.strftime('%B %d, %Y') if presc.created_at else 'N/A' }}</strong>
+                            <span class="badge bg-success d-block mt-2 px-3 py-1 text-uppercase fs-7">{{ presc.status or 'Finalized' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Patient Info Box -->
+                    <div class="bg-light p-3 rounded-3 mb-4 border">
+                        <div class="row g-3">
+                            <div class="col-sm-6 col-md-3">
+                                <small class="text-muted d-block">Patient Name</small>
+                                <strong class="text-dark">{{ presc.patient_name }}</strong>
+                            </div>
+                            <div class="col-sm-6 col-md-3">
+                                <small class="text-muted d-block">Age / Gender</small>
+                                <strong class="text-dark">{{ presc.patient_age }} yrs / {{ presc.patient_gender or 'N/A' }}</strong>
+                            </div>
+                            <div class="col-sm-6 col-md-3">
+                                <small class="text-muted d-block">Prescription ID</small>
+                                <code class="text-primary">{{ presc.id }}</code>
+                            </div>
+                            <div class="col-sm-6 col-md-3">
+                                <small class="text-muted d-block">Status</small>
+                                <strong class="text-success"><i class="fas fa-check-circle me-1"></i>{{ presc.status|capitalize }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prescribed Medications Table -->
+                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-pills me-2 text-primary"></i>Prescribed Medications</h5>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Medicine Name</th>
+                                    <th>Dosage</th>
+                                    <th>Frequency</th>
+                                    <th>Duration</th>
+                                    <th>Instructions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if presc['items'] %}
+                                    {% for item in presc['items'] %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td class="fw-bold text-primary">{{ item.drug_name }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ item.dosage }}</span></td>
+                                        <td><strong class="text-dark">{{ item.frequency }}</strong></td>
+                                        <td>{{ item.duration }}</td>
+                                        <td class="text-muted">{{ item.instructions or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">No medicines listed.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Doctor Notes -->
+                    {% if presc.notes %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold text-dark mb-2"><i class="fas fa-notes-medical me-2 text-primary"></i>Doctor Advice & Notes</h5>
+                        <div class="p-3 bg-white border rounded-3 text-secondary">
+                            {{ presc.notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Footer Disclaimer -->
+                    <div class="border-top pt-4 mt-5 text-center text-muted small">
+                        <p class="mb-1"><i class="fas fa-shield-alt me-1 text-primary"></i> This is an official digitally generated e-prescription issued via MediGuide Platform.</p>
+                        <p class="mb-0 text-muted">Verified & Secure | No physical signature required</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

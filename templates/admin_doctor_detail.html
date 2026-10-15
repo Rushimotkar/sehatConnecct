@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Details | Medico{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-6 py-12">
+    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <p class="text-[10px] font-bold text-primary/40 uppercase tracking-widest mb-2">Doctor Profile</p>
+            <h1 class="text-4xl font-serif font-bold text-primary">{{ doctor.name }}</h1>
+        </div>
+        <div class="flex gap-3">
+            <a href="{{ url_for('admin_edit_doctor', doctor_id=doctor.id) }}" class="px-4 py-2 rounded-2xl bg-secondary text-white text-sm font-bold">Edit</a>
+            <form method="POST" action="{{ url_for('admin_delete_doctor', doctor_id=doctor.id) }}" onsubmit="return confirm('Delete this doctor and related consultation data?');">
+                <button type="submit" class="px-4 py-2 rounded-2xl bg-red-500 text-white text-sm font-bold">Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-8 mb-10">
+        <div class="glass rounded-[2rem] p-8 border-white/40 shadow-xl lg:col-span-2">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-primary/40">Specialization</p>
+                    <p class="mt-2 text-lg font-bold text-primary">{{ doctor.specialization or 'Not specified' }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-primary/40">City</p>
+                    <p class="mt-2 text-lg font-bold text-primary">{{ doctor.city or 'Not specified' }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-primary/40">Hospital</p>
+                    <p class="mt-2 text-lg font-bold text-primary">{{ doctor.hospital_name or 'Not specified' }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-primary/40">Consultation Fee</p>
+                    <p class="mt-2 text-lg font-bold text-primary">₹{{ doctor.consultation_fee or 0 }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-primary/40">Email</p>
+                    <p class="mt-2 text-lg font-bold text-primary break-all">{{ doctor.email or 'Not available' }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-primary/40">Rating</p>
+                    <p class="mt-2 text-lg font-bold text-primary">{{ doctor.rating or 0 }}★</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass rounded-[2rem] p-8 border-white/40 shadow-xl">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-primary/40">Quick Actions</p>
+            <div class="space-y-3 mt-5">
+                <a href="{{ url_for('admin_panel') }}" class="block text-center px-4 py-3 rounded-2xl bg-primary text-white font-bold">Back to Admin</a>
+                <a href="{{ url_for('admin_edit_doctor', doctor_id=doctor.id) }}" class="block text-center px-4 py-3 rounded-2xl border border-primary/10 text-primary font-bold">Update Details</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass rounded-[2rem] overflow-hidden border-white/40 shadow-2xl">
+        <div class="px-6 py-5 border-b border-primary/5">
+            <h2 class="text-xl font-serif font-bold text-primary">Patient Consultations</h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-primary/[0.02] border-b border-primary/5">
+                        <th class="px-6 py-4 text-[10px] font-bold text-primary/40 uppercase tracking-widest">Patient</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-primary/40 uppercase tracking-widest">Date</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-primary/40 uppercase tracking-widest">Status</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-primary/40 uppercase tracking-widest">Diagnosis</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-primary/40 uppercase tracking-widest">Email</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-primary/5">
+                    {% for visit in patient_visits %}
+                    <tr class="hover:bg-primary/[0.01] transition-colors">
+                        <td class="px-6 py-5 text-sm font-bold text-primary">{{ visit.patient_name or 'Unknown Patient' }}</td>
+                        <td class="px-6 py-5 text-sm text-primary/70">{{ visit.consultation_date or visit.created_at or 'N/A' }}</td>
+                        <td class="px-6 py-5 text-sm text-primary/70">{{ visit.status or 'Pending' }}</td>
+                        <td class="px-6 py-5 text-sm text-primary/70">{{ visit.diagnosis or 'Not recorded' }}</td>
+                        <td class="px-6 py-5 text-sm text-primary/70 break-all">{{ visit.patient_email or 'N/A' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-10 text-center text-sm text-primary/30 font-medium">No patient consultations found for this doctor.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

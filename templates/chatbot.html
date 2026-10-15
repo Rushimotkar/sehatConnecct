@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}Medico AI Assistant{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: calc(100vh - 12rem);
+    }
+    .message-bubble {
+        animation: bubble-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes bubble-fade-in {
+        from {
+            opacity: 0;
+            transform: translateY(15px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    .typing-indicator span {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background-color: var(--primary);
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out both;
+    }
+    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes typing {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6">
+    <div class="glass rounded-[2.5rem] border-white/40 shadow-3xl flex flex-col overflow-hidden chat-container">
+        <!-- Chat Header -->
+        <div class="p-6 bg-primary text-white flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                    <i data-lucide="bot" class="w-6 h-6 text-accent"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold font-serif leading-tight">Medico AI Booking Assistant</h1>
+                    <p class="text-[10px] text-white/60 font-medium uppercase tracking-widest">Always Online • Consultation Scheduling</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Connected
+                </span>
+            </div>
+        </div>
+
+        <!-- Messages Container -->
+        <div id="chatbot-messages" class="flex-1 overflow-y-auto p-6 space-y-6 bg-white/40">
+            <!-- Bot Welcome Message -->
+            <div class="flex gap-4 max-w-[85%] message-bubble">
+                <div class="w-10 h-10 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
+                    <i data-lucide="bot" class="w-5 h-5 text-primary"></i>
+                </div>
+                <div class="bg-white border border-primary/5 p-5 rounded-3xl rounded-tl-none shadow-sm text-sm font-medium text-primary/80 leading-relaxed space-y-2">
+                    <p>👋 Hello, <strong>{{ current_user.name }}</strong>! I am your clinical assistant.</p>
+                    <p>I can help you quickly book consultations with the right medical specialists. Try typing:</p>
+                    <ul class="list-disc pl-4 space-y-1 text-xs text-primary/60">
+                        <li><em>"Book an appointment for my fever"</em></li>
+                        <li><em>"I have skin rash and need to see a doctor"</em></li>
+                        <li><em>"Schedule a doctor for stomach pain"</em></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input Footer -->
+        <div class="p-6 border-t border-primary/5 bg-white/80">
+            <div class="flex gap-3">
+                <input type="text" id="chatbot-input" placeholder="Describe symptoms or request a booking..." 
+                       class="flex-1 bg-primary/5 border border-primary/5 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-secondary/20 outline-none text-sm font-medium transition-all text-primary placeholder-primary/30">
+                
+                <button id="chatbot-send" class="w-14 h-14 flex items-center justify-center rounded-2xl bg-primary text-white hover:bg-secondary active:scale-95 transition-all shadow-lg shadow-primary/20">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const messagesContainer = document.getElementById('chatbot-messages');
+    const chatInput = document.getElementById('chatbot-input');
+    const sendButton = document.getElementById('chatbot-send');
+
+    // Send on click
+    sendButton.addEventListener('click', sendMessage);
+    // Send on Enter keypress
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        // 1. Append User Message
+        appendMessage('user', text);
+        chatInput.value = '';
+
+        // 2. Append Typing Indicator
+        const typingIndicator = appendTypingIndicator();
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // 3. POST request to /chatbot
+        fetch('/chatbot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: text })
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return res.json();
+        })
+        .then(data => {
+            // Remove typing indicator
+            typingIndicator.remove();
+
+            if (data.success) {
+                // Append Bot Response
+                appendMessage('bot', data.reply);
+            } else {
+                appendMessage('bot', '⚠️ Sorry, I encountered an error. Please try again.');
+            }
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        })
+        .catch(err => {
+            typingIndicator.remove();
+            appendMessage('bot', '⚠️ Connection failed. Please make sure the server is reachable.');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            console.error(err);
+        });
+    }
+
+    function appendMessage(sender, text) {
+        const messageDiv = document.createElement('div');
+        
+        if (sender === 'user') {
+            messageDiv.className = 'flex flex-row-reverse gap-4 max-w-[85%] ml-auto message-bubble';
+            messageDiv.innerHTML = `
+                <div class="w-10 h-10 rounded-2xl bg-secondary flex items-center justify-center shrink-0 shadow-md">
+                    <i data-lucide="user" class="w-5 h-5 text-white"></i>
+                </div>
+                <div class="bg-secondary text-white p-5 rounded-3xl rounded-tr-none shadow-sm text-sm font-medium leading-relaxed">
+                    ${escapeHtml(text)}
+                </div>
+            `;
+        } else {
+            messageDiv.className = 'flex gap-4 max-w-[85%] message-bubble';
+            // Convert markdown style **text** to HTML bold and newlines to <br>
+            let formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+                
+            messageDiv.innerHTML = `
+                <div class="w-10 h-10 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
+                    <i data-lucide="bot" class="w-5 h-5 text-primary"></i>
+                </div>
+                <div class="bg-white border border-primary/5 p-5 rounded-3xl rounded-tl-none shadow-sm text-sm font-medium text-primary/80 leading-relaxed">
+                    ${formattedText}
+                </div>
+            `;
+        }
+        
+        messagesContainer.appendChild(messageDiv);
+        lucide.createIcons();
+    }
+
+    function appendTypingIndicator() {
+        const indicatorDiv = document.createElement('div');
+        indicatorDiv.className = 'flex gap-4 max-w-[85%] message-bubble';
+        indicatorDiv.innerHTML = `
+            <div class="w-10 h-10 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
+                <i data-lucide="bot" class="w-5 h-5 text-primary"></i>
+            </div>
+            <div class="bg-white border border-primary/5 px-6 py-4 rounded-3xl rounded-tl-none shadow-sm flex items-center gap-1.5 typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        `;
+        messagesContainer.appendChild(indicatorDiv);
+        lucide.createIcons();
+        return indicatorDiv;
+    }
+
+    function escapeHtml(string) {
+        return String(string).replace(/[&<>"']/g, function (s) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[s];
+        });
+    }
+</script>
+{% endblock %}
